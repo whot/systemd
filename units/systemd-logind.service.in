@@ -23,7 +23,7 @@ After=dbus.socket
 
 [Service]
 BusName=org.freedesktop.login1
-CapabilityBoundingSet=CAP_SYS_ADMIN CAP_MAC_ADMIN CAP_AUDIT_CONTROL CAP_CHOWN CAP_DAC_READ_SEARCH CAP_DAC_OVERRIDE CAP_FOWNER CAP_SYS_TTY_CONFIG CAP_LINUX_IMMUTABLE
+CapabilityBoundingSet=CAP_SYS_ADMIN CAP_MAC_ADMIN CAP_AUDIT_CONTROL CAP_CHOWN CAP_DAC_READ_SEARCH CAP_DAC_OVERRIDE CAP_FOWNER CAP_SYS_TTY_CONFIG CAP_LINUX_IMMUTABLE CAP_BPF
 DeviceAllow=block-* r
 DeviceAllow=char-/dev/console rw
 DeviceAllow=char-drm rw
@@ -58,8 +58,7 @@ RuntimeDirectoryPreserve=yes
 StateDirectory=systemd/linger
 SystemCallArchitectures=native
 SystemCallErrorNumber=EPERM
-SystemCallFilter=@system-service
-Type=notify-reload
+SystemCallFilter=@system-service bpf
 {{SERVICE_WATCHDOG}}
 
 # Increase the default a bit in order to allow many simultaneous logins since
