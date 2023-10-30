@@ -12,6 +12,8 @@
 #include <bpf/bpf_helpers.h>
 #include <bpf/bpf_tracing.h>
 
+extern int hid_bpf_hidraw_revoke(int fd) __ksym;
+
 struct hidraw_revoke_syscall_args {
        int fd;
 };
