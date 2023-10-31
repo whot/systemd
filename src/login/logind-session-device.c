@@ -210,8 +210,10 @@ static int session_device_open(SessionDevice *sd, bool active) {
         assert(sd->type != DEVICE_TYPE_UNKNOWN);
         assert(sd->node);
 
+        log_warning("■ ■ ■ ■ %s:%d: opening for %s as %u (%u)", __func__, __LINE__, sd->node, getuid(), geteuid());
         /* open device and try to get a udev_device from it */
         fd = open(sd->node, O_RDWR|O_CLOEXEC|O_NOCTTY|O_NONBLOCK);
+        log_warning("■ ■ ■ ■ %s:%d: fd %d errno %d", __func__, __LINE__, fd, errno);
         if (fd < 0)
                 return -errno;
 
@@ -238,6 +240,7 @@ static int session_device_open(SessionDevice *sd, bool active) {
                 break;
 
         case DEVICE_TYPE_HIDRAW:
+                log_warning("■ ■ ■ ■ %s:%d:", __func__, __LINE__);
                 if (!active)
                         sd_hidraw_revoke(fd);
                 break;
@@ -286,11 +289,13 @@ static int session_device_start(SessionDevice *sd) {
                 break;
 
         case DEVICE_TYPE_HIDRAW:
+                log_warning("■ ■ ■ ■ %s:%d:", __func__, __LINE__);
                 /* Hidraw devices are revoked while inactive. Reopen it and we are fine. */
                 r = session_device_open(sd, true);
                 if (r < 0)
                         return r;
 
+                log_warning( "■ ■ ■ ■ %s:%d:", __func__, __LINE__);
                 /* For hidraw devices, the file descriptor might be left uninitialized. This might happen while resuming
                  * into a session and logind has been restarted right before. */
                 close_and_replace(sd->fd, r);
@@ -340,6 +345,7 @@ static void session_device_stop(SessionDevice *sd) {
                  * This will basically prevent any operations on the fd and
                  * cannot be undone. Good side is: it needs no CAP_SYS_ADMIN
                  * protection this way. */
+                log_warning( "■ ■ ■ ■ %s:%d:", __func__, __LINE__);
                 sd_hidraw_revoke(sd->fd);
                 break;
 
@@ -367,6 +373,7 @@ static DeviceType detect_device_type(sd_device *dev) {
                 if (startswith(sysname, "event"))
                         type = DEVICE_TYPE_EVDEV;
         } else if (streq(subsystem, "hidraw")) {
+                log_warning("■ ■ ■ ■ %s:%d:", __func__, __LINE__);
                 if (startswith(sysname, "hidraw"))
                         type = DEVICE_TYPE_HIDRAW;
         }
