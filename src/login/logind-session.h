@@ -10,13 +10,6 @@ typedef enum KillWho KillWho;
 #include "pidref.h"
 #include "string-util.h"
 
-#if BPF_FRAMEWORK
-#include "bpf-dlopen.h"
-#include "bpf/logind-revoke-skel.h"
-#else
-// FIXME: fake-define the struct here
-#endif
-
 typedef enum SessionState {
         SESSION_OPENING,  /* Session scope is being created */
         SESSION_ONLINE,   /* Logged in */
