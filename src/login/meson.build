@@ -44,7 +44,6 @@ liblogind_core = static_library(
                         userspace],
         build_by_default : false)
 
-
 loginctl_sources = files(
         'loginctl.c',
         'sysfs-show.c',
