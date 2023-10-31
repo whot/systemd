@@ -36,8 +36,10 @@ void (*sym_bpf_object__detach_skeleton)(struct bpf_object_skeleton *);
 void (*sym_bpf_object__destroy_skeleton)(struct bpf_object_skeleton *);
 int (*sym_libbpf_probe_bpf_prog_type)(enum bpf_prog_type, const void *);
 const char* (*sym_bpf_program__name)(const struct bpf_program *);
+int (*sym_bpf_program__fd)(const struct bpf_program *);
 libbpf_print_fn_t (*sym_libbpf_set_print)(libbpf_print_fn_t);
 long (*sym_libbpf_get_error)(const void *);
+int (*sym_bpf_prog_test_run_opts)(int prog_fd, struct bpf_test_run_opts *opts);
 
 /* compat symbols removed in libbpf 1.0 */
 int (*sym_bpf_create_map)(enum bpf_map_type,  int key_size, int value_size, int max_entries, __u32 map_flags);
@@ -124,6 +126,8 @@ int dlopen_bpf(void) {
                         DLSYM_ARG_FORCE(bpf_program__attach_lsm),
 #endif
                         DLSYM_ARG(bpf_program__name),
+                        DLSYM_ARG(bpf_program__fd),
+                        DLSYM_ARG(bpf_prog_test_run_opts),
                         DLSYM_ARG(libbpf_set_print),
                         DLSYM_ARG(libbpf_get_error));
         if (r < 0)

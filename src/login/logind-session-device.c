@@ -103,20 +103,94 @@ static void sd_eviocrevoke(int fd) {
         }
 }
 
+
+#if BPF_FRAMEWORK
+#include "bpf-dlopen.h"
+#include "bpf/logind-revoke-skel.h"
+
+static struct logind_revoke_bpf *logind_revoke_bpf_free(struct logind_revoke_bpf *obj) {
+        /* logind_revoke_bpf__destroy handles object == NULL case */
+        (void) logind_revoke_bpf__destroy(obj);
+
+        return NULL;
+}
+
+DEFINE_TRIVIAL_CLEANUP_FUNC(struct logind_revoke_bpf *, logind_revoke_bpf_free);
+
+static int hidraw_bpf_attach(struct logind_revoke_bpf **ret_obj) {
+        _cleanup_(logind_revoke_bpf_freep) struct logind_revoke_bpf *obj = NULL;
+        int r;
+
+        assert(ret_obj);
+
+        r = dlopen_bpf();
+        if (r < 0) {
+                log_info_errno(r, "Failed to open libbpf, revoke for hidraw is not supported: %m");
+                return -ENOTSUP;
+        }
+
+        obj = logind_revoke_bpf__open();
+        if (!obj)
+                return log_error_errno(errno, "Failed to open BPF object: %m");
+
+        r = logind_revoke_bpf__load(obj);
+        assert(r <= 0);
+        if (r < 0)
+                return log_error_errno(r, "Failed to load BPF object");
+
+        *ret_obj = TAKE_PTR(obj);
+
+        return 0;
+}
+#else
+
+static int hidraw_bpf_attach(void **obj)
+{
+        return -ENOTSUP;
+}
+
+#endif
+
+struct hidraw_revoke_syscall_args {
+        int fd;
+};
+
 static void sd_hidraw_revoke(int fd) {
         static bool warned = false;
+        struct hidraw_revoke_syscall_args args = { .fd = fd };
+
+        uint8_t buffer[4096];
+        int r;
+        r = read(fd, buffer, sizeof buffer);
+        log_warning("■ ■ ■ ■ %s:%d: read %d (%d) from fd %d", __func__, __LINE__, r, errno, fd);
+
+
+        DECLARE_LIBBPF_OPTS(bpf_test_run_opts, tattrs,
+                        .ctx_in = &args,
+                        .ctx_size_in = sizeof(args),
+                        );
+
+        log_warning("■ ■ ■ ■ %s:%d:", __func__, __LINE__);
 
         assert(fd >= 0);
- /* FIXME */
-#if 0
-        if (ioctl(fd, HIDIOCREVOKE, NULL) < 0) {
 
-                if (errno == EINVAL && !warned) {
+        _cleanup_(logind_revoke_bpf_freep) struct logind_revoke_bpf *obj = NULL;
+        int rc;
+        if ((rc = hidraw_bpf_attach(&obj))) {
+                errno = -rc;
+                if (!warned) {
                         log_warning_errno(errno, "Kernel does not support hidraw-revocation: %m");
                         warned = true;
                 }
+        } else {
+                log_warning("■ ■ ■ ■ %s:%d: bpf loaded correctly!", __func__, __LINE__);
+                int bpf_fd = sym_bpf_program__fd(obj->progs.hidraw_revoke);
+                log_warning("■ ■ ■ ■ %s:%d: bpf_fd is %d", __func__, __LINE__, bpf_fd);
+                int prog_rc = sym_bpf_prog_test_run_opts(bpf_fd, &tattrs);
+                log_warning("■ ■ ■ ■ %s:%d: prog ran with is rc %d (%d)", __func__, __LINE__, prog_rc, errno);
         }
-#endif
+        r = read(fd, buffer, sizeof buffer);
+        log_warning("■ ■ ■ ■ %s:%d: read %d (%d) from fd %d", __func__, __LINE__, r, errno, fd);
 }
 
 static int sd_drmsetmaster(int fd) {
